@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.cito.sinide.sinideacl.entity.Accion;
+import com.cito.sinide.sinideacl.entity.AclAccion;
 import com.cito.sinide.sinideacl.repository.AccionRepository;
 
 @RunWith(SpringRunner.class)
@@ -24,7 +24,7 @@ public class SinideAclApplicationTests {
 		// Elimino todas las que puedan existir
 		accionRepository.deleteAll();
 		// Cargo las pruebas
-		Accion accion = new Accion();
+		AclAccion accion = new AclAccion();
 		accion.setAccion("VER");
 		accion.setIdJurisdiccion(13l);
 		
@@ -33,14 +33,14 @@ public class SinideAclApplicationTests {
 
 	@Test
 	public void testInsert(){
-		List<Accion> all = accionRepository.findAll();
+		List<AclAccion> all = accionRepository.findAll();
 		Assert.assertNotNull(all);
 		System.out.println(all.size());
 	}
 	
 	@Test
 	public void testInsert2(){
-		List<Accion> all = accionRepository.findAll();
+		List<AclAccion> all = accionRepository.findAll();
 		Assert.assertNotNull(all);
 		System.out.println(all.size());
 	}
