@@ -48,12 +48,13 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom{
 		
 		switch (clase) {
 		/* si está verificando por una instancia de jurisdicción, tengo que verificar
-		 * que el permiso para realizar dicha acción esté asociado a dicha jurisdicción o a cualquier (valor null)
+		 * que el permiso para realizar dicha acción esté asociado a dicha jurisdicción o a cualquiera (valor null)
 		*/
 		case "jurisdiccion":
 			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idJurisdiccion"), id), cb.isNull(rootAccion.get("idJurisdiccion"))));
 			filtroSobreJurisdiccion = true;
 			break;
+		/* idem nivelServicio */
 		case "nivelServicio":
 			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idNivelServicio"), id), cb.isNull(rootAccion.get("idNivelServicio"))));
 			filtroSobreNivelServicio = true;
