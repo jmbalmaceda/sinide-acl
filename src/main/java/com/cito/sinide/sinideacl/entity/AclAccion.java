@@ -15,8 +15,8 @@ public class AclAccion {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Long id;
 	
-	@Column(name = "id_user")
-	private Long idUser;
+	@Column(name="id_usuario")
+	private Long idUsuario;
 	
 	@Column(name = "accion")
 	private String accion;
@@ -42,14 +42,6 @@ public class AclAccion {
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public Long getIdUser() {
-		return idUser;
-	}
-
-	public void setIdUser(Long idUser) {
-		this.idUser = idUser;
 	}
 
 	public String getAccion() {
@@ -99,6 +91,12 @@ public class AclAccion {
 	public void setIdSeccionCurricular(Long idSeccionCurricular) {
 		this.idSeccionCurricular = idSeccionCurricular;
 	}
-	
-	
+
+	public Long getIdUsuario() {
+		return idUsuario;
+	}
+
+	public void setIdUsuario(Long idUsuario) {
+		this.idUsuario = idUsuario;
+	}
 }
