@@ -1,7 +1,5 @@
 package com.cito.sinide.sinideacl;
 
-import java.util.List;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,37 +9,46 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.cito.sinide.sinideacl.entity.AclAccion;
-import com.cito.sinide.sinideacl.repository.AccionRepository;
+import com.cito.sinide.sinideacl.repository.AclAccionRepository;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class SinideAclApplicationTests {
 	@Autowired
-	private AccionRepository accionRepository;
+	private AclAccionRepository accionRepository;
 	
 	@Before
 	public void contextLoads() {
-		// Elimino todas las que puedan existir
+		// clean
 		accionRepository.deleteAll();
-		// Cargo las pruebas
-		AclAccion accion = new AclAccion();
-		accion.setAccion("VER");
-		accion.setIdJurisdiccion(13l);
 		
+		// Cargo las pruebas
+		AclAccion accion = null;
+		accion = crearAccion("VER", 1L, 13L, null, null, null, null);
+		accionRepository.save(accion);
+		accion = crearAccion("CREAR_TITULACION", 1L, 13L, null, null, null, null);
+		accionRepository.save(accion);
+		accion = crearAccion("TOMAR_TITULACION", 1L, 14L, 2L, 111L, null, null);
 		accionRepository.save(accion);
 	}
-
-	@Test
-	public void testInsert(){
-		List<AclAccion> all = accionRepository.findAll();
-		Assert.assertNotNull(all);
-		System.out.println(all.size());
+	
+	AclAccion crearAccion(String accionStr, Long usuario, Long idJurisdiccion, Long idNivelServicio, Long idUnidadServicio, Long idSeccion, Long idSeccionCurricular){
+		AclAccion accion = new AclAccion();
+		accion.setAccion(accionStr);
+		accion.setIdUsuario(usuario);
+		accion.setIdJurisdiccion(idJurisdiccion);
+		accion.setIdNivelServicio(idNivelServicio);
+		accion.setIdUnidadServicio(idUnidadServicio);
+		accion.setIdSeccion(idSeccion);
+		accion.setIdSeccionCurricular(idSeccionCurricular);
+		return accion;
 	}
 	
 	@Test
-	public void testInsert2(){
-		List<AclAccion> all = accionRepository.findAll();
-		Assert.assertNotNull(all);
-		System.out.println(all.size());
+	public void testPuede(){
+		Assert.assertTrue(accionRepository.puede(1L, "VER", null, null, null));
+		Assert.assertTrue(accionRepository.puede(1L, "CREAR_TITULACION", null, null, null));
+		Assert.assertTrue(accionRepository.puede(1L, "TOMAR_TITULACION", null, null, null));
+		Assert.assertFalse(accionRepository.puede(1L, "TOMAR_ASISTENCIA", null, null, null));
 	}
 }
