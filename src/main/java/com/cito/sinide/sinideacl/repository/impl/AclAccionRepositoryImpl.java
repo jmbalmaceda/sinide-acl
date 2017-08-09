@@ -47,13 +47,27 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom{
 		boolean filtroSobreSeccionCurricular = false;
 		
 		switch (clase) {
+		/* si está verificando por una instancia de jurisdicción, tengo que verificar
+		 * que el permiso para realizar dicha acción esté asociado a dicha jurisdicción o a cualquier (valor null)
+		*/
 		case "jurisdiccion":
 			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idJurisdiccion"), id), cb.isNull(rootAccion.get("idJurisdiccion"))));
 			filtroSobreJurisdiccion = true;
 			break;
-
-		default:
+		case "nivelServicio":
+			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idNivelServicio"), id), cb.isNull(rootAccion.get("idNivelServicio"))));
+			filtroSobreNivelServicio = true;
 			break;
+		}
+		
+		/*
+		 * Para el restro de los atributos no filtrados, se debe verificar que se cumplan en el contexto de la verificación.
+		 */
+		if (!filtroSobreJurisdiccion){
+			Long idJurisdiccion = info.get("jurisdiccion");
+			if (idJurisdiccion!=null){
+				listaPredicados.add(cb.or(cb.equal(rootAccion.get("idJurisdiccion"), idJurisdiccion), cb.isNull(rootAccion.get("idJurisdiccion"))));
+			}
 		}
 		
 		return listaPredicados ;
