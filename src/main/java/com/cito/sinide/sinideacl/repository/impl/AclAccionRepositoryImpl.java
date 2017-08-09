@@ -40,6 +40,22 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom{
 		listaPredicados.add(cb.equal(rootAccion.get("idUsuario"), idUsuario));
 		listaPredicados.add(cb.equal(rootAccion.get("accion"), accion));
 		
+		boolean filtroSobreJurisdiccion = false;
+		boolean filtroSobreNivelServicio = false;
+		boolean filtroSobreUnidadServicio = false;
+		boolean filtroSobreSeccion = false;
+		boolean filtroSobreSeccionCurricular = false;
+		
+		switch (clase) {
+		case "jurisdiccion":
+			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idJurisdiccion"), id), cb.isNull(rootAccion.get("idJurisdiccion"))));
+			filtroSobreJurisdiccion = true;
+			break;
+
+		default:
+			break;
+		}
+		
 		return listaPredicados ;
 	}
 

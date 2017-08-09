@@ -46,9 +46,12 @@ public class SinideAclApplicationTests {
 	
 	@Test
 	public void testPuede(){
-		Assert.assertTrue(accionRepository.puede(1L, "VER", null, null, null));
-		Assert.assertTrue(accionRepository.puede(1L, "CREAR_TITULACION", null, null, null));
-		Assert.assertTrue(accionRepository.puede(1L, "TOMAR_TITULACION", null, null, null));
-		Assert.assertFalse(accionRepository.puede(1L, "TOMAR_ASISTENCIA", null, null, null));
+		Assert.assertTrue(accionRepository.puede(1L, "VER", "jurisdiccion", 13L, null));
+		Assert.assertFalse(accionRepository.puede(1L, "VER", "jurisdiccion", 14L, null));
+		Assert.assertTrue(accionRepository.puede(1L, "CREAR_TITULACION", "jurisdiccion", 13L, null));
+		Assert.assertFalse(accionRepository.puede(1L, "CREAR_TITULACION", "jurisdiccion", 14L, null));
+		Assert.assertTrue(accionRepository.puede(1L, "TOMAR_TITULACION", "jurisdiccion", 14L, null));
+		Assert.assertFalse(accionRepository.puede(1L, "TOMAR_TITULACION", "jurisdiccion", 13L, null));
+		Assert.assertFalse(accionRepository.puede(1L, "TOMAR_ASISTENCIA", "jurisdiccion", null, null));
 	}
 }
