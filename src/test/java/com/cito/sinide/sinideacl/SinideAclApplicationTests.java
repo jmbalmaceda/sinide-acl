@@ -42,9 +42,34 @@ public class SinideAclApplicationTests {
 		accion = crearAccion("TOMAR_TITULACION", 1L, 14L, 2L, null, null, null);
 		accionRepository.save(accion);
 		/*
-		 * usuario 2 puede TOMAT_ASISTENCIA en la jurisdiccion 14
+		 * usuario 2 puede TOMAR_ASISTENCIA en la jurisdiccion 14
 		 */
 		accion = crearAccion("TOMAR_ASISTENCIA", 2L, 14L, null, null, null, null);
+		accionRepository.save(accion);
+		/*
+		 * usuario 3 puede TOMAR_ASISTENCIA en la seccion 8
+		 */
+		accion = crearAccion("TOMAR_ASISTENCIA", 3L, 1L, 4L, 7L, 8L, null);
+		accionRepository.save(accion);
+		/*
+		 * usuario 3 puede TOMAR_ASISTENCIA en la seccionCurricular 8
+		 */
+		accion = crearAccion("TOMAR_ASISTENCIA", 3L, 1L, 4L, 7L, 8L, 8L);
+		accionRepository.save(accion);
+		/*
+		 * usuario 3 puede ser ADMINISTRADOR en la unidadServicio 234
+		 */
+		accion = crearAccion("ADMINISTRADOR", 3L, 1L, 4L, 234L, null, null);
+		accionRepository.save(accion);
+		/*
+		 * usuario 3 puede VINCULAR_TITULACION en la unidadServicio 234
+		 */
+		accion = crearAccion("VINCULAR_TITULACION", 3L, 1L, 4L, 234L, null, null);
+		accionRepository.save(accion);
+		/*
+		 * usuario 3 puede TOMAR_ASISTENCIA en la seccion 10 en la seccionCurricular 2
+		 */
+		accion = crearAccion("TOMAR_ASISTENCIA", 3L, 1L, 4L, 234L, 10L, 2L);
 		accionRepository.save(accion);
 	}
 	
@@ -129,5 +154,35 @@ public class SinideAclApplicationTests {
 		 */
 		info = crearInfo(13L, 99L, null, null, null);
 		Assert.assertFalse(accionRepository.puede(2L, "TOMAR_ASISTENCIA", "nivelServicio", 99L, info));
+		/*
+		 * ¿el usuario 3 pude TOMAR_ASISTENCIA en la seccion 8? Si
+		 */
+		info = crearInfo(null, null, null, 8L, null);
+		Assert.assertTrue(accionRepository.puede(3L, "TOMAR_ASISTENCIA", "seccion", 8L, info));
+		/*
+		 * ¿el usuario 3 pude TOMAR_ASISTENCIA en la seccion 10? No
+		 */
+		info = crearInfo(null, null, null, 10L, null);
+		Assert.assertFalse(accionRepository.puede(3L, "TOMAR_ASISTENCIA", "seccion", 10L, info));
+		/*
+		 * ¿el usuario 3 pude TOMAR_ASISTENCIA en la seccionCurricular 8? Si
+		 */
+		info = crearInfo(null, null, null, null, 8L);
+		Assert.assertTrue(accionRepository.puede(3L, "TOMAR_ASISTENCIA", "seccion", 8L, info));
+		/*
+		 * ¿el usuario 3 ser ADMINISTRADOR en la unidadServicio 234? Si
+		 */
+		info = crearInfo(null, null, 234L, null, null);
+		Assert.assertTrue(accionRepository.puede(3L, "ADMINISTRADOR", "seccion", 234L, info));
+		/*
+		 * ¿el usuario 3 ser ADMINISTRADOR en la unidadServicio 250? No
+		 */
+		info = crearInfo(null, null, 250L, null, null);
+		Assert.assertFalse(accionRepository.puede(3L, "ADMINISTRADOR", "seccion", 250L, info));
+		/*
+		 * ¿el usuario 3 puede VINCULAR_TITULACION en la unidadServicio 234? Si
+		 */
+		info = crearInfo(null, null, 234L, null, null);
+		Assert.assertTrue(accionRepository.puede(3L, "VINCULAR_TITULACION", "unidadServicio", 234L, info));
 	}
 }
