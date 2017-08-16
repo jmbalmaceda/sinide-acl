@@ -11,13 +11,20 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.cito.sinide.sinideacl.entity.AclAccion;
+import com.cito.sinide.sinideacl.entity.AclHerencia;
 import com.cito.sinide.sinideacl.repository.AclAccionRepositoryCustom;
+import com.cito.sinide.sinideacl.repository.AclHerenciaRepository;
 
 public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 
 	@PersistenceContext
 	private EntityManager entityManager;
+
+	@Autowired
+	AclHerenciaRepository aclHerenciaRepository;
 
 	@Override
 	public boolean puede(Long idUsuario, String accion, String clase, Long id, Hashtable<String, Long> info) {
@@ -28,7 +35,18 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 		cq.select(cb.count(rootAccion));
 		cq.where(cb.and(listaPredicados.toArray(new Predicate[listaPredicados.size()])));
 		Long count = entityManager.createQuery(cq).getSingleResult();
-		return count > 0;
+
+		if (count > 0)
+			return true;
+		else {
+			List<AclHerencia> permisosPadres = aclHerenciaRepository.findByPermisoHeredado(accion);
+			for (AclHerencia aclHerencia : permisosPadres) {
+				boolean puede = puede(idUsuario, aclHerencia.getPermisoPadre(), clase, id, info);
+				if (puede)
+					return true;
+			}
+		}
+		return false;
 	}
 
 	private List<Predicate> armarListaPredicados(Long idUsuario, String accion, String clase, Long id,
@@ -173,5 +191,4 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 
 		return listaPredicados;
 	}
-
 }
