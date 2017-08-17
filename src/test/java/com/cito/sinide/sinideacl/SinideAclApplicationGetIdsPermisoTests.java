@@ -89,5 +89,7 @@ public class SinideAclApplicationGetIdsPermisoTests {
 		
 		info = crearInfo(13L, null, null, null, null);
 		accionRepository.getIdsPermiso(1L, "VER_JURISDICCION", "jurisdiccion", info);
+		
+		// Agregar consulta luegod e implementar AclService
 	}
 }
