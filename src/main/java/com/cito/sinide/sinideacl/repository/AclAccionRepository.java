@@ -4,5 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.cito.sinide.sinideacl.entity.AclAccion;
 
-public interface AclAccionRepository extends JpaRepository<AclAccion, Long>, AclAccionRepositoryCustom{
+public interface AclAccionRepository extends JpaRepository<AclAccion, Long>, AclAccionRepositoryCustom {
 }
