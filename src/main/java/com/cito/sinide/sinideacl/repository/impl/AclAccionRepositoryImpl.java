@@ -14,7 +14,9 @@ import javax.persistence.criteria.Root;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.cito.sinide.sinideacl.entity.AclAccion;
+import com.cito.sinide.sinideacl.entity.AclAccionClase;
 import com.cito.sinide.sinideacl.entity.AclHerencia;
+import com.cito.sinide.sinideacl.repository.AclAccionClaseRepository;
 import com.cito.sinide.sinideacl.repository.AclAccionRepositoryCustom;
 import com.cito.sinide.sinideacl.repository.AclHerenciaRepository;
 
@@ -25,6 +27,9 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 
 	@Autowired
 	AclHerenciaRepository aclHerenciaRepository;
+	
+	@Autowired
+	AclAccionClaseRepository aclAccionClaseRepository;
 
 	@Override
 	public boolean puede(Long idUsuario, String accion, String clase, Long id, Hashtable<String, Long> info) {
@@ -49,6 +54,137 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 		return false;
 	}
 
+	@Override
+	public List<String> getPermisos(Long idUsuario, String clase, Long id, Hashtable<String, Long> inf) {
+		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		CriteriaQuery<AclAccion> cq = cb.createQuery(AclAccion.class);
+		Root<AclAccion> rootAccion = cq.from(AclAccion.class);
+		List<Predicate> listaPredicados = armarListaPredicadosAcciones(idUsuario, clase, id, inf, cb, rootAccion);
+		cq.where(cb.and(listaPredicados.toArray(new Predicate[listaPredicados.size()])));
+		List<AclAccion> resultAccionList = entityManager.createQuery(cq).getResultList();
+		
+		List<String> result = new ArrayList<>();
+		
+		for (AclAccion aclAccion : resultAccionList) {
+			List<AclAccionClase> claseAndAccion = aclAccionClaseRepository.findByClaseAndAccion(clase, aclAccion.getAccion());
+			if ((!claseAndAccion.isEmpty()) && (!result.contains(aclAccion.getAccion()))) {
+				result.add(aclAccion.getAccion());
+			} else {
+				List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(aclAccion.getAccion());
+				for (AclHerencia aclHerencia : permisoPadre) { 
+					List<AclAccionClase> claseAndAccion2 = aclAccionClaseRepository.findByClaseAndAccion(clase, aclHerencia.getPermisoHeredado());
+					if ((!claseAndAccion2.isEmpty()) && (!result.contains(aclHerencia.getPermisoHeredado())))
+						result.add(aclHerencia.getPermisoHeredado());
+				}
+			}
+		}
+		
+		return result;
+	}
+
+	private List<Predicate> armarListaPredicadosAcciones(Long idUsuario, String clase, Long id,
+			Hashtable<String, Long> inf, CriteriaBuilder cb, Root<AclAccion> rootAccion) {
+		List<Predicate> listaPredicados = new ArrayList<Predicate>();
+
+		listaPredicados.add(cb.equal(rootAccion.get("idUsuario"), idUsuario));
+
+		boolean filtroSobreJurisdiccion = false;
+		boolean filtroSobreNivelServicio = false;
+		boolean filtroSobreUnidadServicio = false;
+		boolean filtroSobreSeccion = false;
+		@SuppressWarnings("unused")
+		boolean filtroSobreSeccionCurricular = false;
+
+		switch (clase) {
+		/*
+		 * si está verificando por una instancia de jurisdicción, tengo que verificar
+		 * que el permiso para realizar dicha acción esté asociado a dicha jurisdicción
+		 * o a cualquiera (valor null)
+		 */
+		case "jurisdiccion":
+			listaPredicados.add(
+					cb.or(cb.equal(rootAccion.get("idJurisdiccion"), id), cb.isNull(rootAccion.get("idJurisdiccion"))));
+			filtroSobreJurisdiccion = true;
+			break;
+		/* idem nivelServicio */
+		case "nivelServicio":
+			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idNivelServicio"), id),
+					cb.isNull(rootAccion.get("idNivelServicio"))));
+			filtroSobreNivelServicio = true;
+			break;
+		/* idem unidadServicio */
+		case "unidadServicio":
+			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idUnidadServicio"), id),
+					cb.isNull(rootAccion.get("idUnidadServicio"))));
+			filtroSobreUnidadServicio = true;
+			break;
+		/* idem seccion */
+		case "seccion":
+			listaPredicados
+					.add(cb.or(cb.equal(rootAccion.get("idSeccion"), id), cb.isNull(rootAccion.get("idSeccion"))));
+			filtroSobreSeccion = true;
+			break;
+		/* idem seccionCurricular */
+		case "seccionCurricular":
+			listaPredicados.add(cb.or(cb.equal(rootAccion.get("idSeccionCurricular"), id),
+					cb.isNull(rootAccion.get("idSeccionCurricular"))));
+			filtroSobreSeccionCurricular = true;
+			break;
+		}
+
+		/*
+		 * Para el restro de los atributos no filtrados, se debe verificar que se
+		 * cumplan en el contexto de la verificación.
+		 */
+
+		if (filtroSobreJurisdiccion) {
+			listaPredicados.add(
+					cb.and(cb.isNull(rootAccion.get("idNivelServicio")), cb.isNull(rootAccion.get("idUnidadServicio")),
+							cb.isNull(rootAccion.get("idSeccion")), cb.isNull(rootAccion.get("idSeccionCurricular"))));
+		} else {
+			Long idJurisdiccion = inf.get("jurisdiccion");
+			if (idJurisdiccion != null) {
+				listaPredicados.add(cb.or(cb.equal(rootAccion.get("idJurisdiccion"), idJurisdiccion),
+						cb.isNull(rootAccion.get("idJurisdiccion"))));
+			}
+
+			if (filtroSobreNivelServicio) {
+				listaPredicados.add(cb.and(cb.isNull(rootAccion.get("idUnidadServicio")),
+						cb.isNull(rootAccion.get("idSeccion")), cb.isNull(rootAccion.get("idSeccionCurricular"))));
+			} else {
+				Long idNivelServicio = inf.get("nivelServicio");
+				if (idNivelServicio != null) {
+					listaPredicados.add(cb.or(cb.equal(rootAccion.get("idNivelServicio"), idNivelServicio),
+							cb.isNull(rootAccion.get("idNivelServicio"))));
+				}
+
+				if (filtroSobreUnidadServicio) {
+					listaPredicados.add(cb.and(cb.isNull(rootAccion.get("idSeccion")),
+							cb.isNull(rootAccion.get("idSeccionCurricular"))));
+				} else {
+					Long idUnidadServicio = inf.get("unidadServicio");
+					if (idUnidadServicio != null) {
+						listaPredicados.add(cb.or(cb.equal(rootAccion.get("idUnidadServicio"), idUnidadServicio),
+								cb.isNull(rootAccion.get("idUnidadServicio"))));
+					}
+
+					if (filtroSobreSeccion) {
+						listaPredicados.add(cb.and(cb.isNull(rootAccion.get("idSeccionCurricular"))));
+					} else {
+						Long idSeccion = inf.get("seccion");
+						if (idSeccion != null) {
+							listaPredicados.add(cb.or(cb.equal(rootAccion.get("idSeccion"), idSeccion),
+									cb.isNull(rootAccion.get("idSeccion"))));
+						}
+
+					}
+				}
+			}
+		}
+
+		return listaPredicados;
+	}
+
 	private List<Predicate> armarListaPredicados(Long idUsuario, String accion, String clase, Long id,
 			Hashtable<String, Long> info, CriteriaBuilder cb, Root<AclAccion> rootAccion) {
 		List<Predicate> listaPredicados = new ArrayList<Predicate>();
@@ -60,6 +196,7 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 		boolean filtroSobreNivelServicio = false;
 		boolean filtroSobreUnidadServicio = false;
 		boolean filtroSobreSeccion = false;
+		@SuppressWarnings("unused")
 		boolean filtroSobreSeccionCurricular = false;
 
 		switch (clase) {
@@ -191,4 +328,5 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 
 		return listaPredicados;
 	}
+
 }
