@@ -22,7 +22,7 @@ import com.cito.sinide.sinideacl.repository.AclHerenciaRepository;
 public class SinideAclApplicationHerenciaTests {
 	@Autowired
 	private AclHerenciaRepository aclHerenciaRepository;
-	
+
 	@Autowired
 	private AclAccionRepository accionRepository;
 
@@ -31,19 +31,19 @@ public class SinideAclApplicationHerenciaTests {
 	public void contextLoads() {
 		// clean
 		aclHerenciaRepository.deleteAll();
-		
+
 		AclHerencia herencia = new AclHerencia();
-		herencia.setPermisoPadre("TOMAR_TITULACION_UNIDAD_SERVICIO");
-		herencia.setPermisoHeredado("VER_TITULACION_JURISDICCION");
+		herencia.setAccionPadre("TOMAR_TITULACION_UNIDAD_SERVICIO");
+		herencia.setAccionHeredado("VER_TITULACION_JURISDICCION");
 		aclHerenciaRepository.save(herencia);
-		
+
 		AclHerencia herencia2 = new AclHerencia();
-		herencia2.setPermisoPadre("VER_TITULACION_JURISDICCION");
-		herencia2.setPermisoHeredado("VER_INFORMACION_INSTITUCIONAL");
+		herencia2.setAccionPadre("VER_TITULACION_JURISDICCION");
+		herencia2.setAccionHeredado("VER_INFORMACION_INSTITUCIONAL");
 		aclHerenciaRepository.save(herencia2);
-		
+
 		accionRepository.deleteAll();
-		
+
 		// Cargo las pruebas
 		AclAccion accion = null;
 		/*
@@ -51,10 +51,11 @@ public class SinideAclApplicationHerenciaTests {
 		 */
 		accion = crearAccion("TOMAR_TITULACION_UNIDAD_SERVICIO", 1L, 13L, null, null, null, null);
 		accionRepository.save(accion);
-		
+
 	}
 
-	private AclAccion crearAccion(String accionStr, Long usuario, Long idJurisdiccion, Long idNivelServicio, Long idUnidadServicio, Long idSeccion, Long idSeccionCurricular){
+	private AclAccion crearAccion(String accionStr, Long usuario, Long idJurisdiccion, Long idNivelServicio,
+			Long idUnidadServicio, Long idSeccion, Long idSeccionCurricular) {
 		AclAccion accion = new AclAccion();
 		accion.setAccion(accionStr);
 		accion.setIdUsuario(usuario);
@@ -65,32 +66,33 @@ public class SinideAclApplicationHerenciaTests {
 		accion.setIdSeccionCurricular(idSeccionCurricular);
 		return accion;
 	}
-	
-	private Hashtable<String, Long> crearInfo(Long idJurisdiccion, Long idNivelServicio, Long idUnidadServicio, Long idSeccion, Long idSeccionCurricular){
+
+	private Hashtable<String, Long> crearInfo(Long idJurisdiccion, Long idNivelServicio, Long idUnidadServicio,
+			Long idSeccion, Long idSeccionCurricular) {
 		Hashtable<String, Long> hash = new Hashtable<>();
-		if (idJurisdiccion!=null)
+		if (idJurisdiccion != null)
 			hash.put("jurisdiccion", idJurisdiccion);
-		if (idNivelServicio!=null)
+		if (idNivelServicio != null)
 			hash.put("nivelServicio", idNivelServicio);
-		if (idUnidadServicio!=null)
+		if (idUnidadServicio != null)
 			hash.put("unidadServicio", idUnidadServicio);
-		if (idSeccion!=null)
+		if (idSeccion != null)
 			hash.put("seccion", idSeccion);
-		if (idSeccionCurricular!=null)
+		if (idSeccionCurricular != null)
 			hash.put("seccionCurricular", idSeccionCurricular);
-		return hash ;
+		return hash;
 	}
-	
+
 	@Test
 	public void testPuede() {
 		Hashtable<String, Long> info = null;
-		
+
 		info = crearInfo(13L, null, null, null, null);
 		Assert.assertTrue(accionRepository.puede(1L, "VER_INFORMACION_INSTITUCIONAL", "jurisdiccion", 13L, info));
 
 		info = crearInfo(13L, 2L, 14L, null, null);
 		Assert.assertTrue(accionRepository.puede(1L, "VER_INFORMACION_INSTITUCIONAL", "unidadServicio", 14L, info));
-		
+
 		info = crearInfo(10L, 2L, 14L, null, null);
 		Assert.assertFalse(accionRepository.puede(1L, "VER_INFORMACION_INSTITUCIONAL", "unidadServicio", 14L, info));
 	}

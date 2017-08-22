@@ -15,12 +15,18 @@ public class AclHerencia {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Long idHerencia;
 
-	@Column(name = "permiso_padre")
-	private String permisoPadre;
+	@Column(name = "accion_padre")
+	private String accionPadre;
+	
+	@Column(name = "tipo_padre")
+	private String tipoPadre;
 
-	@Column(name = "permiso_heredado")
-	private String permisoHeredado;
+	@Column(name = "accion_heredado")
+	private String accionHeredado;
 
+	@Column(name = "tipo_heredado")
+	private String tipoHeredado;
+	
 	public Long getIdHerencia() {
 		return idHerencia;
 	}
@@ -29,20 +35,36 @@ public class AclHerencia {
 		this.idHerencia = idHerencia;
 	}
 
-	public String getPermisoPadre() {
-		return permisoPadre;
+	public String getAccionPadre() {
+		return accionPadre;
 	}
 
-	public void setPermisoPadre(String permisoPadre) {
-		this.permisoPadre = permisoPadre;
+	public void setAccionPadre(String accionPadre) {
+		this.accionPadre = accionPadre;
 	}
 
-	public String getPermisoHeredado() {
-		return permisoHeredado;
+	public String getAccionHeredado() {
+		return accionHeredado;
 	}
 
-	public void setPermisoHeredado(String permisoHeredado) {
-		this.permisoHeredado = permisoHeredado;
+	public void setAccionHeredado(String accionHeredado) {
+		this.accionHeredado = accionHeredado;
+	}
+
+	public String getTipoPadre() {
+		return tipoPadre;
+	}
+
+	public void setTipoPadre(String tipoPadre) {
+		this.tipoPadre = tipoPadre;
+	}
+
+	public String getTipoHeredado() {
+		return tipoHeredado;
+	}
+
+	public void setTipoHeredado(String tipoHeredado) {
+		this.tipoHeredado = tipoHeredado;
 	}
 
 }

@@ -52,9 +52,9 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 		if (count > 0)
 			return true;
 		else {
-			List<AclHerencia> permisosPadres = aclHerenciaRepository.findByPermisoHeredado(accion);
+			List<AclHerencia> permisosPadres = aclHerenciaRepository.findByAccionHeredado(accion);
 			for (AclHerencia aclHerencia : permisosPadres) {
-				boolean puede = puede(idUsuario, aclHerencia.getPermisoPadre(), clase, id, info);
+				boolean puede = puede(idUsuario, aclHerencia.getAccionPadre(), clase, id, info);
 				if (puede)
 					return true;
 			}
@@ -79,12 +79,12 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 			if ((!claseAndAccion.isEmpty()) && (!result.contains(aclAccion.getAccion()))) {
 				result.add(aclAccion.getAccion());
 			} else {
-				List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(aclAccion.getAccion());
+				List<AclHerencia> permisoPadre = aclHerenciaRepository.findByAccionPadre(aclAccion.getAccion());
 				for (AclHerencia aclHerencia : permisoPadre) {
-					List<AclAccionClase> claseAndAccion2 = aclAccionClaseRepository.findByClaseAndAccion(clase,
-							aclHerencia.getPermisoHeredado());
-					if ((!claseAndAccion2.isEmpty()) && (!result.contains(aclHerencia.getPermisoHeredado())))
-						result.add(aclHerencia.getPermisoHeredado());
+					List<AclAccionClase> claseAndAccion2 = aclAccionClaseRepository.findByClaseAndAccion(aclHerencia.getTipoHeredado(),
+							aclHerencia.getAccionHeredado());
+					if ((!claseAndAccion2.isEmpty()) && (!result.contains(aclHerencia.getAccionHeredado())))
+						result.add(aclHerencia.getAccionHeredado());
 				}
 			}
 		}
@@ -92,7 +92,7 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 		return result;
 	}
 
-	public List<Long> getIdsPermiso(Long idUsuario, String accion, String clase, Hashtable<String, Long> info) {
+	public List<Long> getIdsPermiso(Long idUsuario, String accion, String clase, Hashtable<String, Long> info) { // CAMBIAR LOS ELSE IF POR IF??
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<AclAccion> cq = cb.createQuery(AclAccion.class);
 		Root<AclAccion> rootAccion = cq.from(AclAccion.class);
@@ -100,11 +100,14 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 				rootAccion);
 		cq.where(cb.and(listaPredicados.toArray(new Predicate[listaPredicados.size()])));
 		List<AclAccion> resultList = entityManager.createQuery(cq).getResultList();
-
 		List<Long> result = new ArrayList<>();
 
-		for (AclAccion aclAccion : resultList) {
+		CriteriaBuilder cbHeredado = entityManager.getCriteriaBuilder();
+		CriteriaQuery<AclAccion> cqHeredado = cbHeredado.createQuery(AclAccion.class);
+		Root<AclAccion> rootAccionHeredado = cqHeredado.from(AclAccion.class);
+		List<Predicate> listaPredicadosHeredados = null;
 
+		for (AclAccion aclAccion : resultList) {
 			switch (clase) {
 
 			case "jurisdiccion":
@@ -119,9 +122,7 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 						}
 					}
 				}
-
 				break;
-
 			case "nivelServicio":
 				if (aclAccion.getIdNivelServicio() != null) {
 					if (!result.contains(aclAccion.getIdNivelServicio()))
@@ -136,18 +137,21 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 							}
 						}
 
-						List<String> permisos = getPermisos(idUsuario, "jurisdiccion", aclAccion.getIdJurisdiccion(),
-								info);
-						for (String pp : permisos) {
-							List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(pp);
-							for (AclHerencia aclHerencia : permisoPadre) {
-								if (aclHerencia.getPermisoHeredado().equals(accion)) {
-									List<Long> idsNivelServicioDadoJurisdiccionHerencia = aclService
-											.getIdsNivelServicioDadoJurisdiccion(aclAccion.getIdJurisdiccion());
-									for (Long idsNivServ2 : idsNivelServicioDadoJurisdiccionHerencia) {
-										if (!result.contains(idsNivServ2)) {
-											result.add(idsNivServ2);
-										}
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("jurisdiccion", accion,
+										"nivelServicio");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsNivelServicioDadoJurisdiccion2 = aclService
+										.getIdsNivelServicioDadoJurisdiccion(aclAccion2.getIdJurisdiccion());
+								for (Long nS : idsNivelServicioDadoJurisdiccion2) {
+									if (!result.contains(nS)) {
+										result.add(nS);
 									}
 								}
 							}
@@ -155,7 +159,6 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 					}
 				}
 				break;
-
 			case "unidadServicio":
 				if (aclAccion.getIdUnidadServicio() != null) {
 					if (!result.contains(aclAccion.getIdUnidadServicio()))
@@ -170,23 +173,25 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 							}
 						}
 
-						List<String> permisos = getPermisos(idUsuario, "NivelServicio", aclAccion.getIdNivelServicio(),
-								info);
-						for (String pp : permisos) {
-							List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(pp);
-							for (AclHerencia aclHerencia : permisoPadre) {
-								if (aclHerencia.getPermisoHeredado().equals(accion)) {
-									List<Long> idsUnidadServicioDadoNivelServicio2Herencia = aclService
-											.getIdsUnidadServicioDadoNivelServicio(aclAccion.getIdNivelServicio());
-									for (Long idsNivServ2 : idsUnidadServicioDadoNivelServicio2Herencia) {
-										if (!result.contains(idsNivServ2)) {
-											result.add(idsNivServ2);
-										}
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("nivelServicio", accion,
+										"unidadServicio");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsUnidadServicioDadoNivelServicio2 = aclService
+										.getIdsUnidadServicioDadoNivelServicio(aclAccion2.getIdNivelServicio());
+								for (Long uS : idsUnidadServicioDadoNivelServicio2) {
+									if (!result.contains(uS)) {
+										result.add(uS);
 									}
 								}
 							}
 						}
-
 					} else if (aclAccion.getIdJurisdiccion() != null) {
 						List<Long> idsUnidadServicioDadoJurisdiccion = aclService
 								.getIdsUnidadServicioDadoJurisdiccion(aclAccion.getIdJurisdiccion());
@@ -196,30 +201,21 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 							}
 						}
 
-						List<String> permisos = getPermisos(idUsuario, "jurisdiccion", aclAccion.getIdJurisdiccion(),
-								info);
-						for (String pp : permisos) {
-							List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(pp);
-							for (AclHerencia aclHerencia : permisoPadre) {
-								List<AclAccionClase> permisosNivelServ = aclAccionClaseRepository
-										.findByClase("nivelServicio");
-								for (AclAccionClase aclAccionClase : permisosNivelServ) {
-									if (aclHerencia.getPermisoHeredado().equals(aclAccionClase.getAccion())) {
-										List<AclHerencia> permisoHeredadoNS = aclHerenciaRepository
-												.findByPermisoPadre(aclAccionClase.getAccion());
-										for (AclHerencia aclHerencia2 : permisoHeredadoNS) {
-											if (aclHerencia2.getPermisoHeredado().equals(accion)) {
-												List<Long> idsUnidadServicioDadoJurisdiccion2Herencia = aclService
-														.getIdsUnidadServicioDadoJurisdiccion(
-																aclAccion.getIdJurisdiccion());
-												for (Long idsJur2 : idsUnidadServicioDadoJurisdiccion2Herencia) {
-													if (!result.contains(idsJur2)) {
-														result.add(idsJur2);
-													}
-												}
-											}
-										}
-
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("jurisdiccion", accion,
+										"unidadServicio");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsUnidadServicioDadoJurisdiccion2 = aclService
+										.getIdsUnidadServicioDadoJurisdiccion(aclAccion2.getIdJurisdiccion());
+								for (Long uS : idsUnidadServicioDadoJurisdiccion2) {
+									if (!result.contains(uS)) {
+										result.add(uS);
 									}
 								}
 							}
@@ -227,7 +223,6 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 					}
 				}
 				break;
-
 			case "seccion":
 				if (aclAccion.getIdSeccion() != null) {
 					if (!result.contains(aclAccion.getIdSeccion()))
@@ -242,23 +237,24 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 							}
 						}
 
-						List<String> permisos = getPermisos(idUsuario, "unidadServicio",
-								aclAccion.getIdUnidadServicio(), info);
-						for (String pp : permisos) {
-							List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(pp);
-							for (AclHerencia aclHerencia : permisoPadre) {
-								if (aclHerencia.getPermisoHeredado().equals(accion)) {
-									List<Long> idsSeccionDadoUnidadServicio2Herencia = aclService
-											.getIdsSeccionDadoUnidadServicio(aclAccion.getIdUnidadServicio());
-									for (Long idsUnServ2 : idsSeccionDadoUnidadServicio2Herencia) {
-										if (!result.contains(idsUnServ2)) {
-											result.add(idsUnServ2);
-										}
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("unidadServicio", accion, "seccion");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsSeccionDadoUnidadServicio2 = aclService
+										.getIdsSeccionDadoUnidadServicio(aclAccion2.getIdUnidadServicio());
+								for (Long s : idsSeccionDadoUnidadServicio2) {
+									if (!result.contains(s)) {
+										result.add(s);
 									}
 								}
 							}
 						}
-
 					} else if (aclAccion.getIdNivelServicio() != null) {
 						List<Long> idsSeccionDadoNivelServicio = aclService
 								.getIdsSeccionDadoNivelServicio(aclAccion.getIdNivelServicio());
@@ -267,31 +263,21 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 								result.add(idsSeccN);
 							}
 						}
-						
-						List<String> permisos = getPermisos(idUsuario, "nivelServicio", aclAccion.getIdNivelServicio(),
-								info);
-						for (String pp : permisos) {
-							List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(pp);
-							for (AclHerencia aclHerencia : permisoPadre) {
-								List<AclAccionClase> permisosUServ = aclAccionClaseRepository
-										.findByClase("unidadServicio");
-								for (AclAccionClase aclAccionClase : permisosUServ) {
-									if (aclHerencia.getPermisoHeredado().equals(aclAccionClase.getAccion())) {
-										List<AclHerencia> permisoHeredado = aclHerenciaRepository
-												.findByPermisoPadre(aclAccionClase.getAccion());
-										for (AclHerencia aclHerencia2 : permisoHeredado) {
-											if (aclHerencia2.getPermisoHeredado().equals(accion)) {
-												List<Long> idsSeccionDadoNivelServicio2Herencia = aclService
-														.getIdsSeccionDadoNivelServicio(
-																aclAccion.getIdNivelServicio());
-												for (Long idsSecc2 : idsSeccionDadoNivelServicio2Herencia) {
-													if (!result.contains(idsSecc2)) {
-														result.add(idsSecc2);
-													}
-												}
-											}
-										}
 
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("nivelServicio", accion, "seccion");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsSeccionDadoNivelServicio2 = aclService
+										.getIdsSeccionDadoNivelServicio(aclAccion2.getIdNivelServicio());
+								for (Long s : idsSeccionDadoNivelServicio2) {
+									if (!result.contains(s)) {
+										result.add(s);
 									}
 								}
 							}
@@ -299,45 +285,26 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 					} else if (aclAccion.getIdJurisdiccion() != null) {
 						List<Long> idsSeccionDadoJurisdiccion = aclService
 								.getIdsSeccionDadoJurisdiccion(aclAccion.getIdJurisdiccion());
-
 						for (Long idsSeccJ : idsSeccionDadoJurisdiccion) {
 							if (!result.contains(idsSeccJ)) {
 								result.add(idsSeccJ);
 							}
 						}
-						
-						List<String> permisos = getPermisos(idUsuario, "jurisdicciones", aclAccion.getIdJurisdiccion(),
-								info);
-						for (String pp : permisos) {
-							List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(pp);
-							for (AclHerencia aclHerencia : permisoPadre) {
-								List<AclAccionClase> permisosNServ = aclAccionClaseRepository
-										.findByClase("nivelServicio");
-								for (AclAccionClase aclAccionClase : permisosNServ) {
-									if (aclHerencia.getPermisoHeredado().equals(aclAccionClase.getAccion())) {
-										List<AclHerencia> permisoHeredado = aclHerenciaRepository
-												.findByPermisoPadre(aclAccionClase.getAccion());
-										for (AclHerencia aclHerencia2 : permisoHeredado) {
-											List<AclAccionClase> permisosUServ = aclAccionClaseRepository
-													.findByClase("unidadServicio");
-											for (AclAccionClase aclAccionClase2 : permisosUServ) {
-												if (aclHerencia2.getPermisoHeredado().equals(aclAccionClase2.getAccion())) {
-													List<AclHerencia> permisoHeredadoUS = aclHerenciaRepository
-															.findByPermisoPadre(aclAccionClase2.getAccion());
-													for (AclHerencia aclHerencia3 : permisoHeredadoUS) {
-														if (aclHerencia3.getPermisoHeredado().equals(accion)) {
-															List<Long> idsSeccionDadoJur2Herencia = aclService.getIdsSeccionDadoJurisdiccion(aclAccion.getIdJurisdiccion());
-															for (Long idsSecc2 : idsSeccionDadoJur2Herencia) {
-																if (!result.contains(idsSecc2)) {
-																	result.add(idsSecc2);
-																}
-															}
-														}
-													}
-												}
-											}											
-										}
 
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("jurisdiccion", accion, "seccion");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsSeccionDadoJurisdiccion2 = aclService
+										.getIdsSeccionDadoJurisdiccion(aclAccion2.getIdJurisdiccion());
+								for (Long s : idsSeccionDadoJurisdiccion2) {
+									if (!result.contains(s)) {
+										result.add(s);
 									}
 								}
 							}
@@ -345,7 +312,6 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 					}
 				}
 				break;
-
 			case "seccionCurricular":
 				if (aclAccion.getIdSeccionCurricular() != null) {
 					if (!result.contains(aclAccion.getIdSeccionCurricular()))
@@ -360,28 +326,51 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 							}
 						}
 
-						List<String> permisos = getPermisos(idUsuario, "seccion", aclAccion.getIdSeccion(), info);
-						for (String pp : permisos) {
-							List<AclHerencia> permisoPadre = aclHerenciaRepository.findByPermisoPadre(pp);
-							for (AclHerencia aclHerencia : permisoPadre) {
-								if (aclHerencia.getPermisoHeredado().equals(accion)) {
-									List<Long> idsSeccionCurricularDadoSeccion2Herencia = aclService
-											.getIdsSeccionCurricularDadoSeccion(aclAccion.getIdSeccion());
-									for (Long idsSecc2 : idsSeccionCurricularDadoSeccion2Herencia) {
-										if (!result.contains(idsSecc2)) {
-											result.add(idsSecc2);
-										}
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("seccion", accion,
+										"seccionCurricular");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsSeccionCurricularDadoSeccion2 = aclService
+										.getIdsSeccionCurricularDadoSeccion(aclAccion2.getIdSeccion());
+								for (Long sC : idsSeccionCurricularDadoSeccion2) {
+									if (!result.contains(sC)) {
+										result.add(sC);
 									}
 								}
 							}
 						}
-
 					} else if (aclAccion.getIdUnidadServicio() != null) {
 						List<Long> idsSeccionDadoUnidadServicio = aclService
 								.getIdsSeccionCurricularDadoUnidadServicio(aclAccion.getIdUnidadServicio());
 						for (Long idsSeccCurrU : idsSeccionDadoUnidadServicio) {
 							if (!result.contains(idsSeccCurrU)) {
 								result.add(idsSeccCurrU);
+							}
+						}
+
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("unidadServicio", accion,
+										"seccionCurricular");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsSeccionCurricularDadoUnidadServicio = aclService
+										.getIdsSeccionCurricularDadoUnidadServicio(aclAccion2.getIdUnidadServicio());
+								for (Long sC : idsSeccionCurricularDadoUnidadServicio) {
+									if (!result.contains(sC)) {
+										result.add(sC);
+									}
+								}
 							}
 						}
 					} else if (aclAccion.getIdNivelServicio() != null) {
@@ -392,6 +381,26 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 								result.add(idsSeccCurrN);
 							}
 						}
+
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("nivelServicio", accion,
+										"seccionCurricular");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsSeccionCurricularDadoNivelServicio2 = aclService
+										.getIdsSeccionCurricularDadoNivelServicio(aclAccion2.getIdNivelServicio());
+								for (Long sC : idsSeccionCurricularDadoNivelServicio2) {
+									if (!result.contains(sC)) {
+										result.add(sC);
+									}
+								}
+							}
+						}
 					} else if (aclAccion.getIdJurisdiccion() != null) {
 						List<Long> idsSeccionCurricularDadoJurisdiccion = aclService
 								.getIdsSeccionCurricularDadoJurisdiccion(aclAccion.getIdJurisdiccion());
@@ -400,13 +409,31 @@ public class AclAccionRepositoryImpl implements AclAccionRepositoryCustom {
 								result.add(idsSeccCurrJ);
 							}
 						}
+
+						List<AclHerencia> findByTipoPadreAndAccionHeredadoAndTipoHeredado = aclHerenciaRepository
+								.findByTipoPadreAndAccionHeredadoAndTipoHeredado("jurisdiccion", accion,
+										"seccionCurricular");
+						for (AclHerencia aclHerencia : findByTipoPadreAndAccionHeredadoAndTipoHeredado) {
+							listaPredicadosHeredados = armarListaPredicadosIdsPermisos(idUsuario,
+									aclHerencia.getAccionPadre(), aclHerencia.getTipoPadre(), info, cbHeredado,
+									rootAccionHeredado);
+							cq.where(cb.and(listaPredicadosHeredados.toArray(new Predicate[listaPredicados.size()])));
+							List<AclAccion> resultListHeredados = entityManager.createQuery(cqHeredado).getResultList();
+							for (AclAccion aclAccion2 : resultListHeredados) {
+								List<Long> idsSeccionCurricularDadoJurisdiccion2 = aclService
+										.getIdsSeccionCurricularDadoJurisdiccion(aclAccion2.getIdJurisdiccion());
+								for (Long sC : idsSeccionCurricularDadoJurisdiccion2) {
+									if (!result.contains(sC)) {
+										result.add(sC);
+									}
+								}
+							}
+						}
 					}
 				}
 				break;
-
 			}
 		}
-
 		return result;
 	}
 

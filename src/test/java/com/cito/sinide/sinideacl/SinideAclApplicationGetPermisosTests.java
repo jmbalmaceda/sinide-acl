@@ -38,18 +38,18 @@ public class SinideAclApplicationGetPermisosTests {
 		aclHerenciaRepository.deleteAll();
 
 		AclHerencia herencia = new AclHerencia();
-		herencia.setPermisoPadre("VER_TITULACION_JURISDICCION");
-		herencia.setPermisoHeredado("TOMAR_TITULACION_UNIDAD_SERVICIO");
+		herencia.setAccionPadre("VER_TITULACION_JURISDICCION");
+		herencia.setAccionHeredado("TOMAR_TITULACION_UNIDAD_SERVICIO");
 		aclHerenciaRepository.save(herencia);
 
 		AclHerencia herencia2 = new AclHerencia();
-		herencia2.setPermisoPadre("VER_JURISDICCION");
-		herencia2.setPermisoHeredado("VER_INFORMACION_INSTITUCIONAL");
+		herencia2.setAccionPadre("VER_JURISDICCION");
+		herencia2.setAccionHeredado("VER_INFORMACION_INSTITUCIONAL");
 		aclHerenciaRepository.save(herencia2);
-		
+
 		AclHerencia herencia3 = new AclHerencia();
-		herencia3.setPermisoPadre("VER_JURISDICCION");
-		herencia3.setPermisoHeredado("VER_UNIDAD_SERVICIO");
+		herencia3.setAccionPadre("VER_JURISDICCION");
+		herencia3.setAccionHeredado("VER_UNIDAD_SERVICIO");
 		aclHerenciaRepository.save(herencia3);
 
 		accionRepository.deleteAll();
@@ -61,10 +61,10 @@ public class SinideAclApplicationGetPermisosTests {
 		 */
 		accion = crearAccion("VER_TITULACION_JURISDICCION", 1L, 13L, null, null, null, null);
 		accionRepository.save(accion);
-		
+
 		accion = crearAccion("VER_JURISDICCION", 1L, 14L, null, null, null, null);
 		accionRepository.save(accion);
-		
+
 		accion = crearAccion("VER_UNIDAD_SERVICIO", 1L, 13L, 2L, 14L, null, null);
 		accionRepository.save(accion);
 
@@ -78,10 +78,10 @@ public class SinideAclApplicationGetPermisosTests {
 
 		accionClase = crearAccionClase("VER_TITULACION_JURISDICCION", "jurisdiccion");
 		accionClaseRepository.save(accionClase);
-		
+
 		accionClase = crearAccionClase("VER_UNIDAD_SERVICIO", "unidadServicio");
 		accionClaseRepository.save(accionClase);
-		
+
 		accionClase = crearAccionClase("VER_JURISDICCION", "jurisdiccion");
 		accionClaseRepository.save(accionClase);
 	}
